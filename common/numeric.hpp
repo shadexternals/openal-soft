@@ -21,6 +21,22 @@
 namespace al {
 
 namespace detail {
+
+/* Constant-evaluated bit width of an unsigned value. Used instead of
+ * std::bit_width, which clang-cl with the VS 2026 STL rejects as a
+ * non-constant expression in these constexpr initializers.
+ */
+consteval auto ce_bit_width(unsigned val) noexcept -> unsigned
+{
+    auto width = 0u;
+    while(val != 0u)
+    {
+        ++width;
+        val >>= 1;
+    }
+    return width;
+}
+
     template<typename>
     struct number_traits { };
 
@@ -175,7 +191,7 @@ auto saturating_cast(T const val) noexcept -> R
              */
             auto constexpr mantbits = unsigned{std::numeric_limits<T>::digits - 1};
             auto constexpr max_exponent = unsigned{std::numeric_limits<T>::max_exponent};
-            auto constexpr expbits = unsigned{std::bit_width(max_exponent)};
+            auto constexpr expbits = al::detail::ce_bit_width(max_exponent);
             /* expbias is the exponent value that encodes for 1.xxxx. This
              * corresponds to a left-shift of 1-fpdigits (or a right-shift of
              * fpdigits-1) for the mantissa bits. This is also the minimum
@@ -360,7 +376,7 @@ auto saturating_round(T const val) noexcept -> R
 
     auto constexpr mantbits = unsigned{std::numeric_limits<T>::digits - 1};
     auto constexpr max_exponent = unsigned{std::numeric_limits<T>::max_exponent};
-    auto constexpr expbits = unsigned{std::bit_width(max_exponent)};
+    auto constexpr expbits = al::detail::ce_bit_width(max_exponent);
     auto constexpr expbias = unsigned{(1<<(expbits-1)) - 1};
     auto constexpr expoffset = unsigned{int{expbias} + std::numeric_limits<T>::digits - 1};
     auto constexpr expmax = unsigned{std::numeric_limits<R>::digits
